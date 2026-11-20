@@ -1,0 +1,6 @@
+{
+  "name": "WDM — Wyndhamganj Wale",
+  "description": "Wyndhamganj, Sonbhadra community super-app for local news, civic complaints, creators directory, chat, transport schedules, shops, jobs, tourism, and digital Citizen Card.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

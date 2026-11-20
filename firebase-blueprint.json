@@ -1,0 +1,247 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated Wyndhamganj citizen profile storing identity, mobile number, area, Citizen Card ID, points, and preferences.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "name": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "mobileNumber": { "type": "string", "minLength": 10, "maxLength": 10, "pattern": "^[6-9][0-9]{9}$" },
+        "area": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "citizenId": { "type": "string", "minLength": 6, "maxLength": 32, "pattern": "^WDM-[A-Z0-9\\-]+$" },
+        "points": { "type": "number" },
+        "photoURL": { "type": "string", "maxLength": 2000 },
+        "referralCode": { "type": "string", "minLength": 4, "maxLength": 24, "pattern": "^[A-Z0-9\\-]+$" },
+        "referredBy": { "type": "string", "maxLength": 24 },
+        "pinnedModules": { "type": "array" },
+        "blockedUserIds": { "type": "array" },
+        "themeMode": { "type": "string", "enum": ["system", "light", "dark"] },
+        "accentColor": { "type": "string", "enum": ["default", "purple", "emerald", "saffron", "royal", "rose", "teal"] },
+        "deviceInfo": { "type": "string", "maxLength": 240 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "name", "mobileNumber", "area", "citizenId", "points", "createdAt", "updatedAt"]
+    },
+    "Complaint": {
+      "title": "Complaint",
+      "description": "Public civic grievance reported in Wyndhamganj with status tracking and community support count.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "authorId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "authorName": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "category": {
+          "type": "string",
+          "enum": ["बिजली समस्या", "पेयजल समस्या", "सफाई एवं कचरा", "सड़क समस्या", "स्वास्थ्य सेवा", "अन्य समस्या"]
+        },
+        "status": { "type": "string", "enum": ["submitted", "in_progress", "resolved"] },
+        "title": { "type": "string", "minLength": 4, "maxLength": 140 },
+        "location": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "description": { "type": "string", "minLength": 10, "maxLength": 1200 },
+        "imageUrl": { "type": "string", "maxLength": 2000 },
+        "latitude": { "type": "number", "description": "User-pinned WGS84 latitude (-90 to 90)" },
+        "longitude": { "type": "number", "description": "User-pinned WGS84 longitude (-180 to 180)" },
+        "supporterCount": { "type": "number" },
+        "visibility": { "type": "string", "enum": ["public"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "authorId", "authorName", "category", "status", "title", "location", "description", "supporterCount", "visibility", "createdAt", "updatedAt"]
+    },
+    "ComplaintSupporter": {
+      "title": "ComplaintSupporter",
+      "description": "Record proving a specific user supported (upvoted) a complaint.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "complaintId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "complaintId", "createdAt"]
+    },
+    "NewsArticle": {
+      "title": "NewsArticle",
+      "description": "Local Wyndhamganj & Sonbhadra news story from regional sources.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "articleNumber": { "type": "number" },
+        "source": { "type": "string", "enum": ["Prabhat Khabar", "Hindustan", "Local Video", "Dainik Jagran", "WDM Desk"] },
+        "headline": { "type": "string", "minLength": 5, "maxLength": 220 },
+        "summary": { "type": "string", "minLength": 10, "maxLength": 500 },
+        "body": { "type": "string", "minLength": 20, "maxLength": 4000 },
+        "location": { "type": "string", "minLength": 2, "maxLength": 100 },
+        "imageUrl": { "type": "string", "maxLength": 2000 },
+        "viewsCount": { "type": "number" },
+        "publishedDate": { "type": "string", "minLength": 10, "maxLength": 10, "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+        "authorId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "visibility": { "type": "string", "enum": ["public"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "articleNumber", "source", "headline", "summary", "body", "location", "viewsCount", "publishedDate", "authorId", "visibility", "createdAt", "updatedAt"]
+    },
+    "CreatorProfile": {
+      "title": "CreatorProfile",
+      "description": "Wyndhamganj local social media creator profile for the leaderboard directory.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "name": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "handle": { "type": "string", "minLength": 2, "maxLength": 60 },
+        "platform": { "type": "string", "enum": ["YouTube", "Instagram", "Facebook"] },
+        "followersCount": { "type": "number" },
+        "category": { "type": "string", "minLength": 2, "maxLength": 50 },
+        "area": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "profileUrl": { "type": "string", "maxLength": 500 },
+        "verified": { "type": "boolean" },
+        "approvalStatus": { "type": "string", "enum": ["approved", "pending"] },
+        "visibility": { "type": "string", "enum": ["public"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "ownerId", "name", "handle", "platform", "followersCount", "category", "area", "verified", "approvalStatus", "visibility", "createdAt", "updatedAt"]
+    },
+    "ChatRoom": {
+      "title": "ChatRoom",
+      "description": "Community public chat room or 1-on-1 direct message channel in Wyndhamganj.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "name": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "description": { "type": "string", "maxLength": 200 },
+        "type": { "type": "string", "enum": ["public", "direct"] },
+        "participantIds": { "type": "array" },
+        "visibility": { "type": "string", "enum": ["public", "private"] },
+        "lastMessage": { "type": "string", "maxLength": 240 },
+        "createdBy": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "type", "participantIds", "visibility", "createdBy", "createdAt", "updatedAt"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Individual real-time message inside a Wyndhamganj chat room.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "roomId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "senderId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "senderName": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "senderArea": { "type": "string", "maxLength": 80 },
+        "text": { "type": "string", "minLength": 1, "maxLength": 600 },
+        "roomVisibility": { "type": "string", "enum": ["public", "private"] },
+        "roomParticipants": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "roomId", "senderId", "senderName", "text", "roomVisibility", "roomParticipants", "createdAt"]
+    },
+    "LocalListing": {
+      "title": "LocalListing",
+      "description": "Local Wyndhamganj shop, job, PG/room, transport schedule, tourist spot, festival, event, WhatsApp group, or helpline entry.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "listingType": {
+          "type": "string",
+          "enum": ["shop", "job", "room", "transport", "tourist", "festival", "event", "whatsapp", "helpline"]
+        },
+        "title": { "type": "string", "minLength": 2, "maxLength": 140 },
+        "subtitle": { "type": "string", "maxLength": 160 },
+        "category": { "type": "string", "minLength": 2, "maxLength": 60 },
+        "location": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "contactPhone": { "type": "string", "maxLength": 20 },
+        "priceOrRate": { "type": "string", "maxLength": 80 },
+        "timing": { "type": "string", "maxLength": 100 },
+        "description": { "type": "string", "minLength": 5, "maxLength": 1000 },
+        "externalUrl": { "type": "string", "maxLength": 500 },
+        "imageUrl": { "type": "string", "maxLength": 2000 },
+        "visibility": { "type": "string", "enum": ["public"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "ownerId", "listingType", "title", "category", "location", "description", "visibility", "createdAt", "updatedAt"]
+    },
+    "InfluencerCertificate": {
+      "title": "InfluencerCertificate",
+      "description": "Wyndhamganj Influencer Meet registration and verifiable digital certificate.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "participantName": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "handle": { "type": "string", "minLength": 2, "maxLength": 60 },
+        "lookupKey": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "eventName": { "type": "string", "minLength": 4, "maxLength": 120 },
+        "certificateCode": { "type": "string", "minLength": 6, "maxLength": 32, "pattern": "^WDM-CERT-[A-Z0-9]+$" },
+        "role": { "type": "string", "enum": ["Creator", "Speaker", "Community Partner", "Attendee"] },
+        "issueDate": { "type": "string", "minLength": 10, "maxLength": 10, "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+        "visibility": { "type": "string", "enum": ["public"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "ownerId", "participantName", "handle", "lookupKey", "eventName", "certificateCode", "role", "issueDate", "visibility", "createdAt"]
+    },
+    "AppConfig": {
+      "title": "AppConfig",
+      "description": "Global application configuration, latest version metadata, and community broadcast notice.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "latestVersion": { "type": "string", "minLength": 3, "maxLength": 24 },
+        "releaseNotes": { "type": "string", "maxLength": 500 },
+        "announcement": { "type": "string", "maxLength": 300 },
+        "officialWhatsAppUrl": { "type": "string", "maxLength": 300 },
+        "visibility": { "type": "string", "enum": ["public"] },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "latestVersion", "visibility", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private citizen profiles strictly restricted to owner or admin."
+    },
+    "/complaints/{complaintId}": {
+      "schema": { "$ref": "#/entities/Complaint" },
+      "description": "Public Wyndhamganj civic grievances with atomic supporter counts."
+    },
+    "/complaints/{complaintId}/supporters/{supporterId}": {
+      "schema": { "$ref": "#/entities/ComplaintSupporter" },
+      "description": "Per-user upvote records enforcing one support per user per complaint."
+    },
+    "/news/{newsId}": {
+      "schema": { "$ref": "#/entities/NewsArticle" },
+      "description": "Live Wyndhamganj news stories with view counters."
+    },
+    "/creators/{creatorId}": {
+      "schema": { "$ref": "#/entities/CreatorProfile" },
+      "description": "Local Wyndhamganj social media creators leaderboard."
+    },
+    "/chats/{roomId}": {
+      "schema": { "$ref": "#/entities/ChatRoom" },
+      "description": "Public Wyndhamganj community rooms and 1-on-1 direct channels."
+    },
+    "/chats/{roomId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/ChatMessage" },
+      "description": "Real-time chat messages gated by parent room visibility or membership."
+    },
+    "/listings/{listingId}": {
+      "schema": { "$ref": "#/entities/LocalListing" },
+      "description": "Unified directory for shops, jobs, rooms, bus/train schedules, tourism, festivals, events, WhatsApp groups, and helplines."
+    },
+    "/certificates/{certId}": {
+      "schema": { "$ref": "#/entities/InfluencerCertificate" },
+      "description": "Wyndhamganj Influencer Meet digital certificates."
+    },
+    "/app_config/{configId}": {
+      "schema": { "$ref": "#/entities/AppConfig" },
+      "description": "App version, update checker, and community announcements."
+    }
+  }
+}

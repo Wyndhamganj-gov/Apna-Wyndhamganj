@@ -1,0 +1,606 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Pillar 0: Global Default-Deny Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Global Hardened Primitives ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isVerified() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        request.auth.token.email == 'paswanvive@gmail.com'
+      );
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidString(val, minLen, maxLen) {
+      return val is string && val.size() >= minLen && val.size() <= maxLen;
+    }
+
+    function isOptionalString(data, key, maxLen) {
+      return !(key in data) || (data[key] is string && data[key].size() <= maxLen);
+    }
+
+    function isBoundedStringList(val, maxItems) {
+      return val is list && val.size() <= maxItems && (val.size() == 0 || val[0] is string);
+    }
+
+    // --- Validation Blueprints (Pillar 2) ---
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll(['uid', 'name', 'mobileNumber', 'area', 'citizenId', 'points', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly([
+          'uid', 'name', 'mobileNumber', 'area', 'citizenId', 'points',
+          'photoURL', 'referralCode', 'referredBy', 'pinnedModules',
+          'blockedUserIds', 'themeMode', 'accentColor', 'deviceInfo',
+          'createdAt', 'updatedAt'
+        ])
+        && data.uid == userId
+        && isValidId(data.uid)
+        && isValidString(data.name, 2, 80)
+        && data.mobileNumber is string && data.mobileNumber.size() == 10 && data.mobileNumber.matches('^[6-9][0-9]{9}$')
+        && isValidString(data.area, 1, 80)
+        && data.citizenId is string && data.citizenId.size() >= 6 && data.citizenId.size() <= 32 && data.citizenId.matches('^WDM-[A-Z0-9\\-]+$')
+        && data.points is number && data.points >= 0 && data.points <= 1000000
+        && isOptionalString(data, 'photoURL', 2000)
+        && (!('referralCode' in data) || (data.referralCode is string && data.referralCode.size() >= 4 && data.referralCode.size() <= 24 && data.referralCode.matches('^[A-Z0-9\\-]+$')))
+        && isOptionalString(data, 'referredBy', 24)
+        && (!('pinnedModules' in data) || isBoundedStringList(data.pinnedModules, 8))
+        && (!('blockedUserIds' in data) || isBoundedStringList(data.blockedUserIds, 50))
+        && (!('themeMode' in data) || data.themeMode in ['system', 'light', 'dark'])
+        && (!('accentColor' in data) || data.accentColor in ['default', 'purple', 'emerald', 'saffron', 'royal', 'rose', 'teal'])
+        && isOptionalString(data, 'deviceInfo', 240)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidComplaint(data, complaintId) {
+      return data.keys().hasAll(['id', 'authorId', 'authorName', 'category', 'status', 'title', 'location', 'description', 'supporterCount', 'visibility', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly([
+          'id', 'authorId', 'authorName', 'category', 'status', 'title',
+          'location', 'description', 'imageUrl', 'latitude', 'longitude',
+          'supporterCount', 'visibility', 'createdAt', 'updatedAt'
+        ])
+        && data.id == complaintId
+        && isValidId(data.id)
+        && isValidId(data.authorId)
+        && isValidString(data.authorName, 1, 80)
+        && data.category in ['बिजली समस्या', 'पेयजल समस्या', 'सफाई एवं कचरा', 'सड़क समस्या', 'स्वास्थ्य सेवा', 'अन्य समस्या']
+        && data.status in ['submitted', 'in_progress', 'resolved']
+        && isValidString(data.title, 4, 140)
+        && isValidString(data.location, 2, 120)
+        && isValidString(data.description, 10, 1200)
+        && isOptionalString(data, 'imageUrl', 2000)
+        && (!('latitude' in data) || (data.latitude is number && data.latitude >= -90 && data.latitude <= 90))
+        && (!('longitude' in data) || (data.longitude is number && data.longitude >= -180 && data.longitude <= 180))
+        && (('latitude' in data) == ('longitude' in data))
+        && data.supporterCount is number && data.supporterCount >= 0 && data.supporterCount <= 100000
+        && data.visibility == 'public'
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidSupporter(data, complaintId, supporterId) {
+      return data.keys().hasAll(['userId', 'complaintId', 'createdAt'])
+        && data.keys().hasOnly(['userId', 'complaintId', 'createdAt'])
+        && data.userId == supporterId
+        && data.userId == request.auth.uid
+        && data.complaintId == complaintId
+        && isValidId(data.complaintId)
+        && data.createdAt is timestamp;
+    }
+
+    function isValidNews(data, newsId) {
+      return data.keys().hasAll(['id', 'articleNumber', 'source', 'headline', 'summary', 'body', 'location', 'viewsCount', 'publishedDate', 'authorId', 'visibility', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly([
+          'id', 'articleNumber', 'source', 'headline', 'summary', 'body',
+          'location', 'imageUrl', 'viewsCount', 'publishedDate', 'authorId',
+          'visibility', 'createdAt', 'updatedAt'
+        ])
+        && data.id == newsId
+        && isValidId(data.id)
+        && data.articleNumber is number && data.articleNumber >= 1 && data.articleNumber <= 999999
+        && data.source in ['Prabhat Khabar', 'Hindustan', 'Local Video', 'Dainik Jagran', 'WDM Desk']
+        && isValidString(data.headline, 5, 220)
+        && isValidString(data.summary, 10, 500)
+        && isValidString(data.body, 20, 4000)
+        && isValidString(data.location, 2, 100)
+        && isOptionalString(data, 'imageUrl', 2000)
+        && data.viewsCount is number && data.viewsCount >= 0 && data.viewsCount <= 10000000
+        && data.publishedDate is string && data.publishedDate.size() == 10 && data.publishedDate.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && isValidId(data.authorId)
+        && data.visibility == 'public'
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCreator(data, creatorId) {
+      return data.keys().hasAll(['id', 'ownerId', 'name', 'handle', 'platform', 'followersCount', 'category', 'area', 'verified', 'approvalStatus', 'visibility', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly([
+          'id', 'ownerId', 'name', 'handle', 'platform', 'followersCount',
+          'category', 'area', 'profileUrl', 'verified', 'approvalStatus',
+          'visibility', 'createdAt', 'updatedAt'
+        ])
+        && data.id == creatorId
+        && isValidId(data.id)
+        && isValidId(data.ownerId)
+        && isValidString(data.name, 2, 80)
+        && isValidString(data.handle, 2, 60)
+        && data.platform in ['YouTube', 'Instagram', 'Facebook']
+        && data.followersCount is number && data.followersCount >= 0 && data.followersCount <= 100000000
+        && isValidString(data.category, 2, 50)
+        && isValidString(data.area, 2, 80)
+        && isOptionalString(data, 'profileUrl', 500)
+        && data.verified is bool
+        && data.approvalStatus in ['approved', 'pending']
+        && data.visibility == 'public'
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidChatRoom(data, roomId) {
+      return data.keys().hasAll(['id', 'name', 'type', 'participantIds', 'visibility', 'createdBy', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly([
+          'id', 'name', 'description', 'type', 'participantIds', 'visibility',
+          'lastMessage', 'createdBy', 'createdAt', 'updatedAt'
+        ])
+        && data.id == roomId
+        && isValidId(data.id)
+        && isValidString(data.name, 2, 80)
+        && isOptionalString(data, 'description', 200)
+        && data.type in ['public', 'direct']
+        && isBoundedStringList(data.participantIds, 2)
+        && data.visibility in ['public', 'private']
+        && ((data.type == 'public' && data.visibility == 'public') || (data.type == 'direct' && data.visibility == 'private' && data.participantIds.size() == 2))
+        && isOptionalString(data, 'lastMessage', 240)
+        && isValidId(data.createdBy)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidChatMessage(data, roomId, messageId) {
+      return data.keys().hasAll(['id', 'roomId', 'senderId', 'senderName', 'text', 'roomVisibility', 'roomParticipants', 'createdAt'])
+        && data.keys().hasOnly(['id', 'roomId', 'senderId', 'senderName', 'senderArea', 'text', 'roomVisibility', 'roomParticipants', 'createdAt'])
+        && data.id == messageId
+        && isValidId(data.id)
+        && data.roomId == roomId
+        && isValidId(data.roomId)
+        && data.senderId == request.auth.uid
+        && isValidId(data.senderId)
+        && isValidString(data.senderName, 1, 80)
+        && isOptionalString(data, 'senderArea', 80)
+        && isValidString(data.text, 1, 600)
+        && data.roomVisibility in ['public', 'private']
+        && isBoundedStringList(data.roomParticipants, 2)
+        && data.createdAt is timestamp;
+    }
+
+    function isValidListing(data, listingId) {
+      return data.keys().hasAll(['id', 'ownerId', 'listingType', 'title', 'category', 'location', 'description', 'visibility', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly([
+          'id', 'ownerId', 'listingType', 'title', 'subtitle', 'category',
+          'location', 'contactPhone', 'priceOrRate', 'timing', 'description',
+          'externalUrl', 'imageUrl', 'visibility', 'createdAt', 'updatedAt'
+        ])
+        && data.id == listingId
+        && isValidId(data.id)
+        && isValidId(data.ownerId)
+        && data.listingType in ['shop', 'job', 'room', 'transport', 'tourist', 'festival', 'event', 'whatsapp', 'helpline']
+        && isValidString(data.title, 2, 140)
+        && isOptionalString(data, 'subtitle', 160)
+        && isValidString(data.category, 2, 60)
+        && isValidString(data.location, 2, 120)
+        && isOptionalString(data, 'contactPhone', 20)
+        && isOptionalString(data, 'priceOrRate', 80)
+        && isOptionalString(data, 'timing', 100)
+        && isValidString(data.description, 5, 1000)
+        && isOptionalString(data, 'externalUrl', 500)
+        && isOptionalString(data, 'imageUrl', 2000)
+        && data.visibility == 'public'
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCertificate(data, certId) {
+      return data.keys().hasAll(['id', 'ownerId', 'participantName', 'handle', 'lookupKey', 'eventName', 'certificateCode', 'role', 'issueDate', 'visibility', 'createdAt'])
+        && data.keys().hasOnly([
+          'id', 'ownerId', 'participantName', 'handle', 'lookupKey',
+          'eventName', 'certificateCode', 'role', 'issueDate', 'visibility', 'createdAt'
+        ])
+        && data.id == certId
+        && isValidId(data.id)
+        && isValidId(data.ownerId)
+        && isValidString(data.participantName, 2, 80)
+        && isValidString(data.handle, 2, 60)
+        && isValidString(data.lookupKey, 2, 80)
+        && isValidString(data.eventName, 4, 120)
+        && data.certificateCode is string && data.certificateCode.size() >= 6 && data.certificateCode.size() <= 32 && data.certificateCode.matches('^WDM-CERT-[A-Z0-9]+$')
+        && data.role in ['Creator', 'Speaker', 'Community Partner', 'Attendee']
+        && data.issueDate is string && data.issueDate.size() == 10 && data.issueDate.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && data.visibility == 'public'
+        && data.createdAt is timestamp;
+    }
+
+    function isValidAppConfig(data, configId) {
+      return data.keys().hasAll(['id', 'latestVersion', 'visibility', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'latestVersion', 'releaseNotes', 'announcement', 'officialWhatsAppUrl', 'visibility', 'updatedAt'])
+        && data.id == configId
+        && isValidId(data.id)
+        && isValidString(data.latestVersion, 3, 24)
+        && isOptionalString(data, 'releaseNotes', 500)
+        && isOptionalString(data, 'announcement', 300)
+        && isOptionalString(data, 'officialWhatsAppUrl', 300)
+        && data.visibility == 'public'
+        && data.updatedAt is timestamp;
+    }
+
+    // --- Admins Collection ---
+    match /admins/{adminId} {
+      allow get: if isSignedIn() && isValidId(adminId) && (isOwner(adminId) || isAdmin());
+      allow list: if isVerified() && request.auth.token.email == 'paswanvive@gmail.com';
+      allow create, update, delete: if false;
+    }
+
+    // --- Users Collection (Pillar 6: Strict PII Isolation) ---
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isVerified() && request.auth.token.email == 'paswanvive@gmail.com';
+
+      allow create: if isVerified()
+        && isValidId(userId)
+        && isOwner(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().points == 0
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isVerified()
+        && isValidId(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().uid == existing().uid
+        && incoming().citizenId == existing().citizenId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin() ||
+          // Action: Edit Profile Details & Preferences
+          (
+            isOwner(userId)
+            && incoming().points == existing().points
+            && incoming().diff(existing()).affectedKeys().hasOnly([
+              'name', 'mobileNumber', 'area', 'photoURL', 'pinnedModules',
+              'blockedUserIds', 'themeMode', 'accentColor', 'deviceInfo', 'updatedAt'
+            ])
+          ) ||
+          // Action: One-Time Referral Points Claim (+25 points)
+          (
+            isOwner(userId)
+            && (!('referredBy' in existing()) || existing().referredBy == '')
+            && incoming().referredBy is string && incoming().referredBy.size() >= 4
+            && incoming().points == existing().points + 25
+            && incoming().diff(existing()).affectedKeys().hasOnly(['points', 'referredBy', 'updatedAt'])
+          )
+        );
+
+      allow delete: if isAdmin() && isValidId(userId);
+    }
+
+    // --- Complaints Collection ---
+    match /complaints/{complaintId} {
+      allow get: if isSignedIn() && isValidId(complaintId) && existing().visibility == 'public';
+      allow list: if isSignedIn() && existing().visibility == 'public';
+
+      allow create: if isVerified()
+        && isValidId(complaintId)
+        && isValidComplaint(incoming(), complaintId)
+        && incoming().authorId == request.auth.uid
+        && (incoming().status == 'submitted' || isAdmin())
+        && (incoming().supporterCount == 0 || isAdmin())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isVerified()
+        && isValidId(complaintId)
+        && isValidComplaint(incoming(), complaintId)
+        && incoming().id == existing().id
+        && incoming().authorId == existing().authorId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin() ||
+          // Action: Atomic Upvote (+1) paired with supporter subdocument creation
+          (
+            existing().status != 'resolved'
+            && incoming().supporterCount == existing().supporterCount + 1
+            && incoming().diff(existing()).affectedKeys().hasOnly(['supporterCount', 'updatedAt'])
+            && !exists(/databases/$(database)/documents/complaints/$(complaintId)/supporters/$(request.auth.uid))
+            && existsAfter(/databases/$(database)/documents/complaints/$(complaintId)/supporters/$(request.auth.uid))
+          ) ||
+          // Action: Atomic Remove Support (-1) paired with supporter subdocument deletion
+          (
+            existing().status != 'resolved'
+            && existing().supporterCount > 0
+            && incoming().supporterCount == existing().supporterCount - 1
+            && incoming().diff(existing()).affectedKeys().hasOnly(['supporterCount', 'updatedAt'])
+            && exists(/databases/$(database)/documents/complaints/$(complaintId)/supporters/$(request.auth.uid))
+            && !existsAfter(/databases/$(database)/documents/complaints/$(complaintId)/supporters/$(request.auth.uid))
+          ) ||
+          // Action: Author Edit before resolution
+          (
+            existing().authorId == request.auth.uid
+            && existing().status == 'submitted'
+            && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'location', 'description', 'category', 'imageUrl', 'latitude', 'longitude', 'updatedAt'])
+          )
+        );
+
+      allow delete: if isVerified()
+        && isValidId(complaintId)
+        && (existing().authorId == request.auth.uid || isAdmin());
+
+      // Master Gate Subcollection: Supporters
+      match /supporters/{supporterId} {
+        allow get: if isSignedIn() && isValidId(complaintId) && isValidId(supporterId) && isOwner(supporterId);
+        allow list: if isSignedIn() && existing().userId == request.auth.uid;
+
+        allow create: if isVerified()
+          && isValidId(complaintId)
+          && isValidId(supporterId)
+          && isOwner(supporterId)
+          && isValidSupporter(incoming(), complaintId, supporterId)
+          && incoming().createdAt == request.time
+          && exists(/databases/$(database)/documents/complaints/$(complaintId))
+          && getAfter(/databases/$(database)/documents/complaints/$(complaintId)).data.supporterCount == get(/databases/$(database)/documents/complaints/$(complaintId)).data.supporterCount + 1;
+
+        allow update: if false;
+
+        allow delete: if isVerified()
+          && isValidId(complaintId)
+          && isValidId(supporterId)
+          && isOwner(supporterId)
+          && exists(/databases/$(database)/documents/complaints/$(complaintId))
+          && getAfter(/databases/$(database)/documents/complaints/$(complaintId)).data.supporterCount == get(/databases/$(database)/documents/complaints/$(complaintId)).data.supporterCount - 1;
+      }
+    }
+
+    // --- News Collection ---
+    match /news/{newsId} {
+      allow get: if isSignedIn() && isValidId(newsId) && existing().visibility == 'public';
+      allow list: if isSignedIn() && existing().visibility == 'public';
+
+      allow create: if isVerified()
+        && isValidId(newsId)
+        && isValidNews(incoming(), newsId)
+        && incoming().authorId == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isVerified()
+        && isValidId(newsId)
+        && isValidNews(incoming(), newsId)
+        && incoming().id == existing().id
+        && incoming().authorId == existing().authorId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin() ||
+          // Action: Increment View Counter by 1 on article open
+          (
+            incoming().viewsCount == existing().viewsCount + 1
+            && incoming().diff(existing()).affectedKeys().hasOnly(['viewsCount', 'updatedAt'])
+          ) ||
+          // Action: Author edit
+          (
+            existing().authorId == request.auth.uid
+            && incoming().diff(existing()).affectedKeys().hasOnly(['headline', 'summary', 'body', 'location', 'imageUrl', 'source', 'updatedAt'])
+          )
+        );
+
+      allow delete: if isVerified() && isValidId(newsId) && (existing().authorId == request.auth.uid || isAdmin());
+    }
+
+    // --- Creators Collection ---
+    match /creators/{creatorId} {
+      allow get: if isSignedIn() && isValidId(creatorId) && existing().visibility == 'public';
+      allow list: if isSignedIn() && existing().visibility == 'public';
+
+      allow create: if isVerified()
+        && isValidId(creatorId)
+        && isValidCreator(incoming(), creatorId)
+        && incoming().ownerId == request.auth.uid
+        && (
+          isAdmin() ||
+          (incoming().verified == false && incoming().approvalStatus == 'pending')
+        )
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isVerified()
+        && isValidId(creatorId)
+        && isValidCreator(incoming(), creatorId)
+        && incoming().id == existing().id
+        && incoming().ownerId == existing().ownerId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin() ||
+          // Action: Owner updates profile details without touching verified/approvalStatus
+          (
+            existing().ownerId == request.auth.uid
+            && incoming().verified == existing().verified
+            && incoming().approvalStatus == existing().approvalStatus
+            && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'handle', 'platform', 'followersCount', 'category', 'area', 'profileUrl', 'updatedAt'])
+          )
+        );
+
+      allow delete: if isVerified() && isValidId(creatorId) && (existing().ownerId == request.auth.uid || isAdmin());
+    }
+
+    // --- Chats Collection ---
+    match /chats/{roomId} {
+      allow get: if isSignedIn() && isValidId(roomId) && (
+        existing().visibility == 'public' ||
+        request.auth.uid in existing().participantIds ||
+        isAdmin()
+      );
+      allow list: if isSignedIn() && (
+        existing().visibility == 'public' ||
+        request.auth.uid in existing().participantIds
+      );
+
+      allow create: if isVerified()
+        && isValidId(roomId)
+        && isValidChatRoom(incoming(), roomId)
+        && incoming().createdBy == request.auth.uid
+        && (incoming().type == 'public' || request.auth.uid in incoming().participantIds)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isVerified()
+        && isValidId(roomId)
+        && isValidChatRoom(incoming(), roomId)
+        && incoming().id == existing().id
+        && incoming().type == existing().type
+        && incoming().visibility == existing().visibility
+        && incoming().participantIds == existing().participantIds
+        && incoming().createdBy == existing().createdBy
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin() ||
+          // Action: Update lastMessage preview on new message send
+          (
+            (existing().type == 'public' || request.auth.uid in existing().participantIds)
+            && incoming().diff(existing()).affectedKeys().hasOnly(['lastMessage', 'updatedAt'])
+          )
+        );
+
+      allow delete: if isAdmin() && isValidId(roomId);
+
+      // Master Gate Subcollection: Chat Messages
+      match /messages/{messageId} {
+        allow get: if isSignedIn() && isValidId(roomId) && isValidId(messageId)
+          && exists(/databases/$(database)/documents/chats/$(roomId))
+          && (
+            get(/databases/$(database)/documents/chats/$(roomId)).data.type == 'public' ||
+            request.auth.uid in get(/databases/$(database)/documents/chats/$(roomId)).data.participantIds
+          );
+
+        allow list: if isSignedIn()
+          && existing().roomId == roomId
+          && (
+            existing().roomVisibility == 'public' ||
+            request.auth.uid in existing().roomParticipants
+          );
+
+        allow create: if isVerified()
+          && isValidId(roomId)
+          && isValidId(messageId)
+          && isValidChatMessage(incoming(), roomId, messageId)
+          && incoming().createdAt == request.time
+          && exists(/databases/$(database)/documents/chats/$(roomId))
+          && get(/databases/$(database)/documents/chats/$(roomId)).data.visibility == incoming().roomVisibility
+          && get(/databases/$(database)/documents/chats/$(roomId)).data.participantIds == incoming().roomParticipants
+          && (
+            get(/databases/$(database)/documents/chats/$(roomId)).data.type == 'public' ||
+            request.auth.uid in get(/databases/$(database)/documents/chats/$(roomId)).data.participantIds
+          );
+
+        allow update: if false;
+        allow delete: if isVerified() && isValidId(roomId) && isValidId(messageId) && (existing().senderId == request.auth.uid || isAdmin());
+      }
+    }
+
+    // --- Local Listings Collection ---
+    match /listings/{listingId} {
+      allow get: if isSignedIn() && isValidId(listingId) && existing().visibility == 'public';
+      allow list: if isSignedIn() && existing().visibility == 'public';
+
+      allow create: if isVerified()
+        && isValidId(listingId)
+        && isValidListing(incoming(), listingId)
+        && incoming().ownerId == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isVerified()
+        && isValidId(listingId)
+        && isValidListing(incoming(), listingId)
+        && incoming().id == existing().id
+        && incoming().ownerId == existing().ownerId
+        && incoming().listingType == existing().listingType
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin() ||
+          (
+            existing().ownerId == request.auth.uid
+            && incoming().diff(existing()).affectedKeys().hasOnly([
+              'title', 'subtitle', 'category', 'location', 'contactPhone',
+              'priceOrRate', 'timing', 'description', 'externalUrl', 'imageUrl', 'updatedAt'
+            ])
+          )
+        );
+
+      allow delete: if isVerified() && isValidId(listingId) && (existing().ownerId == request.auth.uid || isAdmin());
+    }
+
+    // --- Influencer Meet Certificates Collection ---
+    match /certificates/{certId} {
+      allow get: if isSignedIn() && isValidId(certId) && existing().visibility == 'public';
+      allow list: if isSignedIn() && existing().visibility == 'public';
+
+      allow create: if isVerified()
+        && isValidId(certId)
+        && isValidCertificate(incoming(), certId)
+        && incoming().ownerId == request.auth.uid
+        && incoming().createdAt == request.time;
+
+      allow update: if false;
+      allow delete: if isVerified() && isValidId(certId) && (existing().ownerId == request.auth.uid || isAdmin());
+    }
+
+    // --- App Config Collection ---
+    match /app_config/{configId} {
+      allow get: if isSignedIn() && isValidId(configId) && existing().visibility == 'public';
+      allow list: if isSignedIn() && existing().visibility == 'public';
+
+      allow create: if isAdmin()
+        && isValidId(configId)
+        && isValidAppConfig(incoming(), configId)
+        && incoming().updatedAt == request.time;
+
+      allow update: if isAdmin()
+        && isValidId(configId)
+        && isValidAppConfig(incoming(), configId)
+        && incoming().id == existing().id
+        && incoming().updatedAt == request.time;
+
+      allow delete: if false;
+    }
+  }
+}
