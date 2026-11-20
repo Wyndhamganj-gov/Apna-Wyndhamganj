@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "41977183189",
+    "project_id": "cultivated-range-rvc14",
+    "storage_bucket": "cultivated-range-rvc14.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:41977183189:android:0f21ad05429fea5f69db5c",
+        "android_client_info": {
+          "package_name": "com.wyndhamganj.wdm"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "41977183189-trporee4oum77cvk2sn4o504hof7mpln.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCkY33gKWHE9GTlK3d-N9tyuaxcmNb5Xrc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "41977183189-trporee4oum77cvk2sn4o504hof7mpln.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
