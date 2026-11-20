@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Wyndhamganj Wale</string>
+    <string name="title_activity_main">Wyndhamganj Wale</string>
+    <string name="package_name">com.wyndhamganj.wdm</string>
+    <string name="custom_url_scheme">com.wyndhamganj.wdm</string>
+</resources>
