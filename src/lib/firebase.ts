@@ -56,7 +56,6 @@ export async function signInWithGoogleAccount(): Promise<UserCredential> {
     const res = await SocialLogin.login({
       provider: 'google',
       options: {
-        scopes: ['email', 'profile'],
         style: 'standard',
       },
     });
@@ -64,7 +63,7 @@ export async function signInWithGoogleAccount(): Promise<UserCredential> {
       res.result.responseType === 'online' ? res.result.idToken : null;
     if (!idToken) {
       throw new Error(
-        'Google Sign-In did not return an ID token. Please verify that your Android app package (com.wyndhamganj.wdm) and SHA-1 fingerprint are registered in Firebase Console.'
+        'Google Sign-In did not return an ID token. Please verify that Android app com.wyndhamganj.wdm and the APK SHA-1 fingerprint are registered in Firebase Console.'
       );
     }
     const credential = GoogleAuthProvider.credential(idToken);
