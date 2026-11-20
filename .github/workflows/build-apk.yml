@@ -68,10 +68,9 @@ jobs:
         run: chmod +x android/gradlew
 
       - name: Restore optional debug keystore
-        if: ${{ secrets.ANDROID_DEBUG_KEYSTORE_BASE64 != '' }}
+        if: env.KEYSTORE_B64 != ''
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_DEBUG_KEYSTORE_BASE64 }}
-        shell: bash
         run: |
           set -euo pipefail
           mkdir -p "$HOME/.android"
