@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { signOut } from 'firebase/auth';
 import { deleteDoc, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { QRCodeSVG } from 'qrcode.react';
 import {
@@ -25,7 +24,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
-import { auth, db, handleFirestoreError, OperationType } from '../lib/firebase';
+import { db, handleFirestoreError, OperationType, signOutAccount } from '../lib/firebase';
 import {
   ACCENT_PRESETS,
   APP_VERSION,
@@ -238,7 +237,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => signOut(auth)}
+              onClick={() => signOutAccount()}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 text-xs font-semibold hover:bg-red-100 dark:hover:bg-red-950 min-h-[42px] cursor-pointer"
             >
               <LogOut className="w-3.5 h-3.5" />
@@ -429,9 +428,11 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             <div className="rounded-2xl p-5 text-white bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 border border-white/15 space-y-4 shadow-lg">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-[var(--accent)] font-extrabold text-xs flex items-center justify-center">
-                    WDM
-                  </div>
+                  <img
+                    src="/assets/aistudio/Screenshot_2026-11-20_195741_c44a8c05.png"
+                    alt="WDM Wyndhamganj logo"
+                    className="w-9 h-9 rounded-lg object-cover bg-white"
+                  />
                   <div>
                     <p className="text-xs font-bold tracking-tight">Wyndhamganj Wale</p>
                     <p className="text-[10px] text-slate-300">Sonbhadra, Uttar Pradesh</p>

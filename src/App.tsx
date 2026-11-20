@@ -373,9 +373,11 @@ function WdmAppContent() {
   if (!authReady || profileLoading) {
     return (
       <div className="min-h-screen bg-[#F8F9FA] dark:bg-[#0F172A] flex flex-col items-center justify-center p-6">
-        <div className="w-14 h-14 rounded-2xl bg-[var(--accent)] text-white font-extrabold text-lg flex items-center justify-center shadow-lg">
-          WDM
-        </div>
+        <img
+          src="/assets/aistudio/Screenshot_2026-11-20_195741_c44a8c05.png"
+          alt="WDM Wyndhamganj logo"
+          className="w-16 h-16 rounded-2xl object-cover shadow-lg bg-white"
+        />
         <p className="mt-4 text-sm font-semibold text-slate-700 dark:text-slate-200">
           Wyndhamganj Wale
         </p>
@@ -431,9 +433,11 @@ function WdmAppContent() {
             onClick={() => handleTabChange('home')}
             className="flex items-center gap-2.5 whitespace-nowrap shrink-0 cursor-pointer"
           >
-            <span className="w-9 h-9 rounded-xl bg-[var(--accent)] text-white font-extrabold text-xs flex items-center justify-center shadow-xs">
-              WDM
-            </span>
+            <img
+              src="/assets/aistudio/Screenshot_2026-11-20_195741_c44a8c05.png"
+              alt="WDM Wyndhamganj logo"
+              className="w-9 h-9 rounded-xl object-cover shadow-xs bg-white"
+            />
             <span className="text-base sm:text-lg font-extrabold tracking-tight text-slate-900 dark:text-white">
               Wyndhamganj Wale
             </span>

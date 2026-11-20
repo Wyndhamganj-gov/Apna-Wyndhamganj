@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { signInWithPopup, signOut, type User } from 'firebase/auth';
+import { type User } from 'firebase/auth';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import {
   ArrowRight,
@@ -11,7 +11,13 @@ import {
   ShieldCheck,
   User as UserIcon,
 } from 'lucide-react';
-import { auth, db, googleProvider, handleFirestoreError, OperationType } from '../lib/firebase';
+import {
+  db,
+  handleFirestoreError,
+  OperationType,
+  signInWithGoogleAccount,
+  signOutAccount,
+} from '../lib/firebase';
 import { APP_IMAGES } from '../data/seedData';
 import { VALIDATION, WYNDHAMGANJ_AREAS } from '../types/wdm';
 
@@ -93,10 +99,15 @@ export const AuthGate: React.FC<AuthGateProps> = ({
     setAuthError('');
     setSigningIn(true);
     try {
-      await signInWithPopup(auth, googleProvider);
+      await signInWithGoogleAccount();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Unable to sign in right now.';
-      if (!msg.includes('popup-closed-by-user')) {
+      const lower = msg.toLowerCase();
+      if (
+        !lower.includes('popup-closed-by-user') &&
+        !lower.includes('cancel') &&
+        !lower.includes('dismissed')
+      ) {
         setAuthError(msg);
       }
     } finally {
@@ -186,9 +197,11 @@ export const AuthGate: React.FC<AuthGateProps> = ({
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/50 to-slate-950/20" />
           <div className="relative z-10 max-w-lg">
             <div className="inline-flex items-center gap-2.5 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-[var(--accent)] text-white font-extrabold text-sm flex items-center justify-center shadow-lg">
-                WDM
-              </div>
+              <img
+                src="/assets/aistudio/Screenshot_2026-11-20_195741_c44a8c05.png"
+                alt="WDM Wyndhamganj logo"
+                className="w-11 h-11 rounded-xl object-cover shadow-lg bg-white"
+              />
               <span className="text-sm font-semibold text-white/90 tracking-tight">
                 Wyndhamganj, Sonbhadra · UP
               </span>
@@ -269,7 +282,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({
                   </div>
                   <button
                     type="button"
-                    onClick={() => signOut(auth)}
+                    onClick={() => signOutAccount()}
                     className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 px-2.5 py-2 rounded-lg min-h-[40px]"
                     title="Switch account"
                   >

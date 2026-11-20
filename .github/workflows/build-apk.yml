@@ -67,6 +67,16 @@ jobs:
         shell: bash
         run: chmod +x android/gradlew
 
+      - name: Restore optional debug keystore
+        if: ${{ secrets.ANDROID_DEBUG_KEYSTORE_BASE64 != '' }}
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_DEBUG_KEYSTORE_BASE64 }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.android"
+          printf '%s' "$KEYSTORE_B64" | base64 -d > "$HOME/.android/debug.keystore"
+
       - name: Build debug APK
         working-directory: android
         run: ./gradlew :app:assembleDebug --stacktrace --no-daemon
@@ -94,6 +104,12 @@ jobs:
             exit 1
           fi
           ls -lh "$APK_PATH"
+          SHA1_LINE="$(keytool -printcert -jarfile "$APK_PATH" 2>/dev/null | grep -m1 'SHA1:' || true)"
+          if [[ -n "$SHA1_LINE" ]]; then
+            echo "APK Signing Certificate ${SHA1_LINE}"
+            echo "### Android Signing Fingerprint" >> "$GITHUB_STEP_SUMMARY"
+            echo "\`${SHA1_LINE}\`" >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Upload debug APK artifact
         id: upload_artifact
